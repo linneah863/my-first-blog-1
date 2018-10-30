@@ -3,9 +3,44 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import TemplateView
+from rest_framework.renderers import TemplateHTMLRenderer
+from rest_framework.response import Response
+from rest_framework.viewsets import ViewSet
 
+from blog.serializers import PostSerializer
 from .models import Post
 from .forms import PostForm
+
+class PostViewSet(ViewSet):
+    renderer_classes = [TemplateHTMLRenderer]
+
+
+    def create(self, request):
+        data = request.data
+        serializer = PostSerializer(data=data)
+        if serializer.is_valid():
+            post = serializer.save(author=request.user, published_date=timezone.now())
+            return self.retrieve(request, pk=post.id)
+        else:
+            return Response({'form': serializer}, template_name='blog/post_edit.html')
+
+    def retrieve(self, request, pk):
+        post = get_object_or_404(Post, pk=pk)
+        serializer = PostSerializer(post)
+        return Response({'post': serializer.data}, template_name='blog/post_detail.html')
+
+    def list(self, request):
+        edit = request.query_params.get('edit', False)
+        if edit:
+            serializer = PostSerializer()
+            return Response({'form': serializer}, template_name='blog/post_edit.html')
+        else:
+            posts = Post.objects.all()
+            serializer = PostSerializer(posts, many=True)
+            return Response({'posts': serializer.data}, template_name = 'blog/post_list.html')
+
+    def update(self, request, pk):
+        pass
 
 
 class PostListView(TemplateView):
