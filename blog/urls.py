@@ -4,7 +4,16 @@ from rest_framework.routers import DefaultRouter
 from blog.views import PostViewSet
 from . import views
 
-router = DefaultRouter()
+
+class BlogRouter(DefaultRouter):
+    def get_method_map(self, viewset, method_map):
+        map = super(BlogRouter, self).get_method_map(viewset, method_map)
+        if 'post' in map:
+            map['post'] = map['put']
+        return map
+
+
+router = BlogRouter()
 router.register('posts', PostViewSet, basename='post')
 
 urlpatterns = router.urls
